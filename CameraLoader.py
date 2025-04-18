@@ -86,6 +86,13 @@ class CamLoader:
             self.stream.release()
 
 
+from threading import Thread
+import cv2
+import time
+import numpy as np
+from queue import Queue
+
+
 class CamLoader_Q:
     """Use threading and queue to capture a frame and store to queue for pickup in sequence.
     Recommend for video file.
@@ -112,7 +119,8 @@ class CamLoader_Q:
         self.preprocess_fn = preprocess
 
     def start(self):
-        t = Thread(target=self.update, args=(), daemon=True).start()
+        t = Thread(target=self.update, args=(), daemon=True)
+        t.start()
         c = 0
         while not self.grabbed():
             time.sleep(0.1)
@@ -136,19 +144,18 @@ class CamLoader_Q:
                         frame = self.preprocess_fn(frame)
 
                     frames.append(frame)
-                    frames = np.stack(frames)
-                    self.Q.put(frames)
+                frames = np.stack(frames)
+                self.Q.put(frames)
             else:
-                with self.Q.mutex:
-                    self.Q.queue.clear()
-            # time.sleep(0.05)
+                time.sleep(0.05)  # Wait for space in the queue
 
     def grabbed(self):
         """Return `True` if can read a frame."""
         return self.Q.qsize() > 0
 
     def getitem(self):
-        return self.Q.get().squeeze()
+        frame = self.Q.get()
+        return frame.squeeze()  # Make sure dimensions are safe before squeezing
 
     def stop(self):
         if self.stopped:
@@ -164,8 +171,7 @@ class CamLoader_Q:
             self.stream.release()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.stream.isOpened():
-            self.stream.release()
+        self.stop()  # Ensure stream is released on exit
 
 
 if __name__ == '__main__':

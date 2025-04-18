@@ -50,6 +50,11 @@ frames by hand for training ST-GCN model.
 - ST-GCN : https://github.com/yysijie/st-gcn
 
 
+
+-----------------------------
+# pip env shell
+Python 3.13.2 로 실행했음..
+
 # CUDA
 nvidia-smi
 pip3 install torch torchvision torchaudio —index-url https://download.pytorch.org/whl/cu126
