@@ -17,7 +17,9 @@ from ActionsEstLoader import TSSTG
 
 #source = '../Data/test_video/test7.mp4'
 #source = '../Data/falldata/Home/Videos/video (2).avi'  # hard detect
-source = '../Data/falldata/Home/Videos/video (1).avi'
+#source = '../Data/falldata/Home/Videos/video (1).avi'
+source = './test/downloaded_video.mp4'
+#source = './test/falldown.mp4'
 #source = 2
 
 
@@ -79,6 +81,7 @@ if __name__ == '__main__':
     resize_fn = ResizePadding(inp_dets, inp_dets)
 
     cam_source = args.camera
+    
     print(cam_source)
     if type(cam_source) is str and os.path.isfile(cam_source):
         # Use loader thread with Q for video file.
@@ -88,6 +91,8 @@ if __name__ == '__main__':
         cam = CamLoader(int(cam_source) if cam_source.isdigit() else cam_source,
                         preprocess=preproc).start()
 
+    print('cam loaded!!!!!!!!!!!!!!!!!!!!!!!')
+    print(cam.__len__())
     #frame_size = cam.frame_size
     #scf = torch.min(inp_size / torch.FloatTensor([frame_size]), 1)[0]
 
@@ -105,12 +110,15 @@ if __name__ == '__main__':
         image = frame.copy()
 
         # Detect humans bbox in the frame with detector model.
+        print(f'####1 {f}')
         detected = detect_model.detect(frame, need_resize=False, expand_bb=10)
 
         # Predict each tracks bbox of current frame from previous frames information with Kalman filter.
         tracker.predict()
+        #print('####2')
         # Merge two source of predicted bbox together.
         for track in tracker.tracks:
+            #print('####3')
             det = torch.tensor([track.to_tlbr().tolist() + [0.5, 1.0, 0.0]], dtype=torch.float32)
             detected = torch.cat([detected, det], dim=0) if detected is not None else det
 
@@ -118,9 +126,11 @@ if __name__ == '__main__':
         if detected is not None:
             #detected = non_max_suppression(detected[None, :], 0.45, 0.2)[0]
             # Predict skeleton pose of each bboxs.
+            #print('####4')
             poses = pose_model.predict(frame, detected[:, 0:4], detected[:, 4])
 
             # Create Detections object.
+            #print('####5')
             detections = [Detection(kpt2bbox(ps['keypoints'].numpy()),
                                     np.concatenate((ps['keypoints'].numpy(),
                                                     ps['kp_score'].numpy()), axis=1),
@@ -133,8 +143,9 @@ if __name__ == '__main__':
 
         # Update tracks by matching each track information of current and previous frame or
         # create a new track if no matched.
+        #print('####6')
         tracker.update(detections)
-
+        #print('####7')
         # Predict Actions of each track.
         for i, track in enumerate(tracker.tracks):
             if not track.is_confirmed():
@@ -167,6 +178,7 @@ if __name__ == '__main__':
                 frame = cv2.putText(frame, action, (bbox[0] + 5, bbox[1] + 15), cv2.FONT_HERSHEY_COMPLEX,
                                     0.4, clr, 1)
 
+        #print('####8')
         # Show Frame.
         frame = cv2.resize(frame, (0, 0), fx=2., fy=2.)
         frame = cv2.putText(frame, '%d, FPS: %f' % (f, 1.0 / (time.time() - fps_time)),
