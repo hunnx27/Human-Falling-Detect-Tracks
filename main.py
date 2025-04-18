@@ -79,6 +79,7 @@ if __name__ == '__main__':
     resize_fn = ResizePadding(inp_dets, inp_dets)
 
     cam_source = args.camera
+    print(cam_source)
     if type(cam_source) is str and os.path.isfile(cam_source):
         # Use loader thread with Q for video file.
         cam = CamLoader_Q(cam_source, queue_size=1000, preprocess=preproc).start()
