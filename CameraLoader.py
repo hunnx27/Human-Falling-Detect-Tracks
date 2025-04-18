@@ -33,7 +33,7 @@ class CamLoader:
         self.preprocess_fn = preprocess
 
     def start(self):
-        self.t = Thread(target=self.update, args=())  # , daemon=True)
+        self.t = Thread(target=self.update, args=(), daemon=True)  # Daemon 스레드로 설정
         self.t.start()
         c = 0
         while not self.ret:
@@ -47,23 +47,23 @@ class CamLoader:
     def update(self):
         while not self.stopped:
             ret, frame = self.stream.read()
-            self.read_lock.acquire()
-            self.ori_frame = frame.copy()
-            if ret and self.preprocess_fn is not None:
-                frame = self.preprocess_fn(frame)
+            with self.read_lock:
+                self.ori_frame = frame.copy()
+                if ret and self.preprocess_fn is not None:
+                    frame = self.preprocess_fn(frame)
 
-            self.ret, self.frame = ret, frame
-            self.read_lock.release()
+                self.ret, self.frame = ret, frame
 
     def grabbed(self):
         """Return `True` if can read a frame."""
         return self.ret
 
     def getitem(self):
-        self.read_lock.acquire()
-        frame = self.frame.copy()
-        ori_frame = self.ori_frame.copy()
-        self.read_lock.release()
+        if not self.ret:
+            raise ValueError("Frame not available yet.")
+        with self.read_lock:
+            frame = self.frame.copy()
+            ori_frame = self.ori_frame.copy()
         if self.ori:
             return frame, ori_frame
         else:
@@ -74,7 +74,7 @@ class CamLoader:
             return
         self.stopped = True
         if self.t.is_alive():
-            self.t.join()
+            self.t.join(timeout=5)  # 최대 5초까지 기다린 후 종료
         self.stream.release()
 
     def __del__(self):
@@ -82,8 +82,7 @@ class CamLoader:
             self.stream.release()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.stream.isOpened():
-            self.stream.release()
+        self.stop()  # stop에서 스트림 해제 이미 처리됨
 
 
 from threading import Thread
