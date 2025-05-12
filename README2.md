@@ -70,7 +70,7 @@ https://github.com/GajuuzZ/Human-Falling-Detect-Tracks
   
   
   
-  pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu128
+  pip3 install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
 
 nvidia-smi
  NVIDIA-SMI 572.61 / Driver Version: 572.61 / CUDA Version: 12.8
